@@ -7,6 +7,7 @@ Tests the end-to-end query flow:
 - Source tracking
 - Exception propagation
 """
+
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from rag_system import RAGSystem
@@ -18,10 +19,12 @@ class TestRAGSystemInit:
 
     def test_init_creates_components(self, mock_config):
         """Test that initialization creates all required components."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore'), \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.SessionManager'):
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore"),
+            patch("rag_system.AIGenerator"),
+            patch("rag_system.SessionManager"),
+        ):
 
             system = RAGSystem(mock_config)
 
@@ -33,17 +36,19 @@ class TestRAGSystemInit:
 
     def test_init_registers_tools(self, mock_config):
         """Test that tools are registered on initialization."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore'), \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.SessionManager'):
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore"),
+            patch("rag_system.AIGenerator"),
+            patch("rag_system.SessionManager"),
+        ):
 
             system = RAGSystem(mock_config)
 
             # Should have at least 2 tools registered (search and outline)
             assert len(system.tool_manager.tools) >= 2
-            assert 'search_course_content' in system.tool_manager.tools
-            assert 'get_course_outline' in system.tool_manager.tools
+            assert "search_course_content" in system.tool_manager.tools
+            assert "get_course_outline" in system.tool_manager.tools
 
 
 @pytest.mark.unit
@@ -52,10 +57,12 @@ class TestRAGSystemQuery:
 
     def test_query_returns_response_and_sources(self, mock_config, mock_vector_store):
         """Test that query returns a tuple of (response, sources)."""
-        with patch('rag_system.DocumentProcessor') as mock_dp, \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor") as mock_dp,
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             # Mock the AI generator to return a response
             mock_ai_instance = MagicMock()
@@ -74,10 +81,12 @@ class TestRAGSystemQuery:
 
     def test_query_without_session(self, mock_config, mock_vector_store):
         """Test query without providing a session_id."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
             mock_ai_instance.generate_response = Mock(return_value="Response")
@@ -93,10 +102,12 @@ class TestRAGSystemQuery:
 
     def test_query_with_session(self, mock_config, mock_vector_store):
         """Test query with an existing session_id."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
             mock_ai_instance.generate_response = Mock(return_value="Response")
@@ -115,14 +126,16 @@ class TestRAGSystemQuery:
             # Should use conversation history
             mock_ai_instance.generate_response.assert_called_once()
             call_kwargs = mock_ai_instance.generate_response.call_args.kwargs
-            assert 'conversation_history' in call_kwargs
+            assert "conversation_history" in call_kwargs
 
     def test_query_updates_conversation_history(self, mock_config, mock_vector_store):
         """Test that query updates conversation history."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
             mock_ai_instance.generate_response = Mock(return_value="Response")
@@ -144,10 +157,12 @@ class TestRAGSystemQuery:
 
     def test_query_passes_tools_to_ai(self, mock_config, mock_vector_store):
         """Test that query passes tool definitions to AI generator."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
             mock_ai_instance.generate_response = Mock(return_value="Response")
@@ -160,15 +175,17 @@ class TestRAGSystemQuery:
 
             # Check that tools were passed
             call_kwargs = mock_ai_instance.generate_response.call_args.kwargs
-            assert 'tools' in call_kwargs
-            assert 'tool_manager' in call_kwargs
+            assert "tools" in call_kwargs
+            assert "tool_manager" in call_kwargs
 
     def test_query_returns_sources(self, mock_config, mock_vector_store):
         """Test that sources are returned from search tools."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
             mock_ai_instance.generate_response = Mock(return_value="Response")
@@ -178,9 +195,7 @@ class TestRAGSystemQuery:
             system.ai_generator = mock_ai_instance
 
             # Simulate sources from search
-            system.search_tool.last_sources = [
-                {"text": "MCP Course", "url": "http://example.com"}
-            ]
+            system.search_tool.last_sources = [{"text": "MCP Course", "url": "http://example.com"}]
 
             response, sources = system.query("What is MCP?")
 
@@ -195,15 +210,15 @@ class TestRAGSystemQueryErrors:
 
     def test_ai_generator_error_propagates(self, mock_config, mock_vector_store):
         """Test that AI generator errors propagate up."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             mock_ai_instance = MagicMock()
-            mock_ai_instance.generate_response = Mock(
-                side_effect=Exception("API key invalid")
-            )
+            mock_ai_instance.generate_response = Mock(side_effect=Exception("API key invalid"))
             mock_ai.return_value = mock_ai_instance
 
             system = RAGSystem(mock_config)
@@ -215,10 +230,12 @@ class TestRAGSystemQueryErrors:
 
     def test_vector_store_error_propagates(self, mock_config):
         """Test that vector store errors propagate up."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore') as mock_vs, \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore") as mock_vs,
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             # Vector store that raises error
             mock_vs_instance = MagicMock()
@@ -248,10 +265,12 @@ class TestRAGSystemAddCourse:
 
     def test_add_course_document_success(self, mock_config, mock_vector_store):
         """Test adding a course document successfully."""
-        with patch('rag_system.DocumentProcessor') as mock_dp, \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.SessionManager'):
+        with (
+            patch("rag_system.DocumentProcessor") as mock_dp,
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator"),
+            patch("rag_system.SessionManager"),
+        ):
 
             from models import Course
 
@@ -259,7 +278,7 @@ class TestRAGSystemAddCourse:
                 title="Test Course",
                 instructor="Test Instructor",
                 course_link="http://example.com",
-                lessons=[]
+                lessons=[],
             )
             mock_chunks = []
 
@@ -277,15 +296,15 @@ class TestRAGSystemAddCourse:
 
     def test_add_course_document_error(self, mock_config, mock_vector_store):
         """Test error handling when adding a course document."""
-        with patch('rag_system.DocumentProcessor') as mock_dp, \
-             patch('rag_system.VectorStore', return_value=mock_vector_store), \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.SessionManager'):
+        with (
+            patch("rag_system.DocumentProcessor") as mock_dp,
+            patch("rag_system.VectorStore", return_value=mock_vector_store),
+            patch("rag_system.AIGenerator"),
+            patch("rag_system.SessionManager"),
+        ):
 
             mock_dp_instance = MagicMock()
-            mock_dp_instance.process_course_document = Mock(
-                side_effect=Exception("Parse error")
-            )
+            mock_dp_instance.process_course_document = Mock(side_effect=Exception("Parse error"))
             mock_dp.return_value = mock_dp_instance
 
             system = RAGSystem(mock_config)
@@ -304,10 +323,12 @@ class TestRAGSystemGetAnalytics:
 
     def test_get_course_analytics(self, mock_config):
         """Test getting course analytics."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore') as mock_vs, \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.SessionManager'):
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore") as mock_vs,
+            patch("rag_system.AIGenerator"),
+            patch("rag_system.SessionManager"),
+        ):
 
             mock_vs_instance = MagicMock()
             mock_vs_instance.get_course_count = Mock(return_value=5)
@@ -331,10 +352,12 @@ class TestRAGSystemEndToEnd:
 
     def test_full_query_flow_with_tool_use(self, mock_config):
         """Test the full query flow when Claude uses a tool."""
-        with patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.VectorStore') as mock_vs, \
-             patch('rag_system.AIGenerator') as mock_ai, \
-             patch('rag_system.SessionManager') as mock_sm:
+        with (
+            patch("rag_system.DocumentProcessor"),
+            patch("rag_system.VectorStore") as mock_vs,
+            patch("rag_system.AIGenerator") as mock_ai,
+            patch("rag_system.SessionManager") as mock_sm,
+        ):
 
             # Mock vector store
             mock_vs_instance = MagicMock()
@@ -360,6 +383,7 @@ class TestRAGSystemEndToEnd:
             final_response.content = [mock_content]
 
             call_count = [0]
+
             def side_effect_fn(*args, **kwargs):
                 call_count[0] += 1
                 if call_count[0] == 1:
@@ -368,14 +392,18 @@ class TestRAGSystemEndToEnd:
 
             mock_ai_instance.messages.create = Mock(side_effect=side_effect_fn)
             mock_ai_instance.generate_response = Mock(
-                side_effect=lambda *args, **kwargs: mock_ai_instance._handle_tool_execution(
-                    tool_use_response,
-                    {
-                        "messages": [{"role": "user", "content": kwargs.get("query", "")}],
-                        "system": "System prompt"
-                    },
-                    MagicMock()
-                ) if kwargs.get("tool_manager") else "Direct answer"
+                side_effect=lambda *args, **kwargs: (
+                    mock_ai_instance._handle_tool_execution(
+                        tool_use_response,
+                        {
+                            "messages": [{"role": "user", "content": kwargs.get("query", "")}],
+                            "system": "System prompt",
+                        },
+                        MagicMock(),
+                    )
+                    if kwargs.get("tool_manager")
+                    else "Direct answer"
+                )
             )
 
             mock_ai.return_value = mock_ai_instance

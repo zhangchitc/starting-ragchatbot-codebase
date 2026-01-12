@@ -9,6 +9,7 @@ Tests the execute method with various scenarios:
 - Error handling
 - Output formatting
 """
+
 import pytest
 from unittest.mock import Mock, patch
 from vector_store import SearchResults
@@ -29,7 +30,9 @@ class TestCourseSearchToolExecute:
         # Check that the result contains formatted content
         assert "Test content" in result
 
-    def test_query_with_course_name_uses_semantic_matching(self, course_search_tool, mock_vector_store):
+    def test_query_with_course_name_uses_semantic_matching(
+        self, course_search_tool, mock_vector_store
+    ):
         """Test that course_name parameter is passed to search method."""
         # The search method should be called with course_name parameter
         mock_vector_store.search.reset_mock()
@@ -38,7 +41,7 @@ class TestCourseSearchToolExecute:
 
         # Verify search was called with course_name
         call_args = mock_vector_store.search.call_args
-        assert call_args.kwargs['course_name'] == "MCP"
+        assert call_args.kwargs["course_name"] == "MCP"
 
     def test_query_with_lesson_number_filter(self, course_search_tool, mock_vector_store):
         """Test that lesson_number parameter is passed to search."""
@@ -46,14 +49,14 @@ class TestCourseSearchToolExecute:
 
         # Verify search was called with lesson_number
         call_args = mock_vector_store.search.call_args
-        assert call_args.kwargs['lesson_number'] == 2
+        assert call_args.kwargs["lesson_number"] == 2
 
     def test_empty_results_returns_proper_message(self, mock_vector_store):
         """Test that empty search results return appropriate message."""
         # Configure mock to return empty results
-        mock_vector_store.search = Mock(return_value=SearchResults(
-            documents=[], metadata=[], distances=[], error=None
-        ))
+        mock_vector_store.search = Mock(
+            return_value=SearchResults(documents=[], metadata=[], distances=[], error=None)
+        )
 
         tool = CourseSearchTool(mock_vector_store)
         result = tool.execute(query="nonexistent topic")
@@ -62,9 +65,9 @@ class TestCourseSearchToolExecute:
 
     def test_empty_results_with_course_filter(self, mock_vector_store):
         """Test empty results message includes course name when filtered."""
-        mock_vector_store.search = Mock(return_value=SearchResults(
-            documents=[], metadata=[], distances=[], error=None
-        ))
+        mock_vector_store.search = Mock(
+            return_value=SearchResults(documents=[], metadata=[], distances=[], error=None)
+        )
 
         tool = CourseSearchTool(mock_vector_store)
         result = tool.execute(query="topic", course_name="Some Course")
@@ -74,9 +77,9 @@ class TestCourseSearchToolExecute:
 
     def test_empty_results_with_lesson_filter(self, mock_vector_store):
         """Test empty results message includes lesson number when filtered."""
-        mock_vector_store.search = Mock(return_value=SearchResults(
-            documents=[], metadata=[], distances=[], error=None
-        ))
+        mock_vector_store.search = Mock(
+            return_value=SearchResults(documents=[], metadata=[], distances=[], error=None)
+        )
 
         tool = CourseSearchTool(mock_vector_store)
         result = tool.execute(query="topic", lesson_number=5)
@@ -87,9 +90,9 @@ class TestCourseSearchToolExecute:
     def test_vector_store_error_is_propagated(self, mock_vector_store):
         """Test that vector store errors are returned in the result."""
         error_msg = "Search error: ChromaDB connection failed"
-        mock_vector_store.search = Mock(return_value=SearchResults(
-            documents=[], metadata=[], distances=[], error=error_msg
-        ))
+        mock_vector_store.search = Mock(
+            return_value=SearchResults(documents=[], metadata=[], distances=[], error=error_msg)
+        )
 
         tool = CourseSearchTool(mock_vector_store)
         result = tool.execute(query="test")
@@ -139,8 +142,8 @@ class TestCourseSearchToolFormatResults:
         assert len(tool.last_sources) > 0
         # Each source should have 'text' and 'url' keys
         for source in tool.last_sources:
-            assert 'text' in source
-            assert 'url' in source
+            assert "text" in source
+            assert "url" in source
 
     def test_format_results_with_lesson_metadata(self, mock_vector_store):
         """Test formatting results with lesson number in metadata."""
@@ -148,7 +151,7 @@ class TestCourseSearchToolFormatResults:
             documents=["Lesson content about servers"],
             metadata=[{"course_title": "MCP: Build Rich-Context AI Apps", "lesson_number": 2}],
             distances=[0.1],
-            error=None
+            error=None,
         )
 
         tool = CourseSearchTool(mock_vector_store)
@@ -232,9 +235,9 @@ class TestToolManager:
         assert len(definitions) == 2  # search and outline tools
         # Check each definition has required keys
         for definition in definitions:
-            assert 'name' in definition
-            assert 'description' in definition
-            assert 'input_schema' in definition
+            assert "name" in definition
+            assert "description" in definition
+            assert "input_schema" in definition
 
     def test_execute_tool_success(self, tool_manager):
         """Test executing a registered tool."""
@@ -258,9 +261,7 @@ class TestToolManager:
         search_tool = CourseSearchTool(mock_vector_store)
 
         # Simulate a search that populates last_sources
-        search_tool.last_sources = [
-            {"text": "Test Course", "url": "http://example.com"}
-        ]
+        search_tool.last_sources = [{"text": "Test Course", "url": "http://example.com"}]
 
         manager.register_tool(search_tool)
         sources = manager.get_last_sources()
@@ -285,11 +286,13 @@ class TestToolManager:
 
         # Create a mock tool without last_sources
         mock_tool = Mock()
-        mock_tool.get_tool_definition = Mock(return_value={
-            "name": "mock_tool",
-            "description": "Mock tool",
-            "input_schema": {"type": "object"}
-        })
+        mock_tool.get_tool_definition = Mock(
+            return_value={
+                "name": "mock_tool",
+                "description": "Mock tool",
+                "input_schema": {"type": "object"},
+            }
+        )
         del mock_tool.last_sources  # Remove last_sources attribute
 
         manager.register_tool(mock_tool)
@@ -307,26 +310,26 @@ class TestToolDefinitions:
         """Test that CourseSearchTool has valid definition."""
         definition = course_search_tool.get_tool_definition()
 
-        assert 'name' in definition
-        assert definition['name'] == 'search_course_content'
-        assert 'description' in definition
-        assert 'input_schema' in definition
-        assert definition['input_schema']['type'] == 'object'
-        assert 'properties' in definition['input_schema']
-        assert 'query' in definition['input_schema']['properties']
-        assert definition['input_schema']['properties']['query']['type'] == 'string'
+        assert "name" in definition
+        assert definition["name"] == "search_course_content"
+        assert "description" in definition
+        assert "input_schema" in definition
+        assert definition["input_schema"]["type"] == "object"
+        assert "properties" in definition["input_schema"]
+        assert "query" in definition["input_schema"]["properties"]
+        assert definition["input_schema"]["properties"]["query"]["type"] == "string"
 
     def test_course_outline_tool_definition(self, course_outline_tool):
         """Test that CourseOutlineTool has valid definition."""
         definition = course_outline_tool.get_tool_definition()
 
-        assert 'name' in definition
-        assert definition['name'] == 'get_course_outline'
-        assert 'description' in definition
-        assert 'input_schema' in definition
-        assert 'properties' in definition['input_schema']
+        assert "name" in definition
+        assert definition["name"] == "get_course_outline"
+        assert "description" in definition
+        assert "input_schema" in definition
+        assert "properties" in definition["input_schema"]
         # course_name should be optional
-        assert 'course_name' in definition['input_schema']['properties']
+        assert "course_name" in definition["input_schema"]["properties"]
 
 
 @pytest.mark.unit
@@ -347,14 +350,18 @@ class TestToolErrorHandling:
         """Test that outline tool handles invalid JSON in lessons."""
         mock_vector_store._resolve_course_name = Mock(return_value="Test Course")
         mock_catalog = Mock()
-        mock_catalog.get = Mock(return_value={
-            'metadatas': [{
-                'title': 'Test Course',
-                'course_link': 'http://example.com',
-                'lessons_json': 'invalid json{{{',
-                'lesson_count': 2
-            }]
-        })
+        mock_catalog.get = Mock(
+            return_value={
+                "metadatas": [
+                    {
+                        "title": "Test Course",
+                        "course_link": "http://example.com",
+                        "lessons_json": "invalid json{{{",
+                        "lesson_count": 2,
+                    }
+                ]
+            }
+        )
         mock_vector_store.course_catalog = mock_catalog
 
         tool = CourseOutlineTool(mock_vector_store)

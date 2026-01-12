@@ -17,4 +17,40 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "black>=25.1.0",
+    "ruff>=0.9.6",
+    "mypy>=1.15.0",
 ]
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | chroma_db
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

@@ -1,6 +1,7 @@
 import anthropic
 from typing import List, Optional, Dict, Tuple
 
+
 class AIGenerator:
     """Handles interactions with Anthropic's Claude API for generating responses"""
 
@@ -46,16 +47,15 @@ Provide only the direct answer to what was asked.
         self.max_tool_rounds = max_tool_rounds
 
         # Pre-build base API parameters
-        self.base_params = {
-            "model": self.model,
-            "temperature": 0,
-            "max_tokens": 800
-        }
+        self.base_params = {"model": self.model, "temperature": 0, "max_tokens": 800}
 
-    def generate_response(self, query: str,
-                         conversation_history: Optional[str] = None,
-                         tools: Optional[List] = None,
-                         tool_manager=None) -> str:
+    def generate_response(
+        self,
+        query: str,
+        conversation_history: Optional[str] = None,
+        tools: Optional[List] = None,
+        tool_manager=None,
+    ) -> str:
         """
         Generate AI response with optional tool usage and conversation context.
 
@@ -85,9 +85,7 @@ Provide only the direct answer to what was asked.
         # If no tools available, make single API call and return
         if not tools or not tool_manager:
             response = self.client.messages.create(
-                **self.base_params,
-                messages=messages,
-                system=system_content
+                **self.base_params, messages=messages, system=system_content
             )
             return response.content[0].text
 
@@ -101,7 +99,7 @@ Provide only the direct answer to what was asked.
                 "messages": messages,
                 "system": system_content,
                 "tools": tools,
-                "tool_choice": {"type": "auto"}
+                "tool_choice": {"type": "auto"},
             }
 
             # Get response from Claude
@@ -119,9 +117,7 @@ Provide only the direct answer to what was asked.
                 return self._force_final_synthesis(messages, system_content)
 
             # Execute tools and build result blocks
-            tool_results, had_error = self._execute_tools_from_response(
-                response, tool_manager
-            )
+            tool_results, had_error = self._execute_tools_from_response(response, tool_manager)
 
             # Append tool results to conversation for next round
             messages.append({"role": "user", "content": tool_results})
@@ -153,22 +149,25 @@ Provide only the direct answer to what was asked.
             if content_block.type == "tool_use":
                 try:
                     tool_result = tool_manager.execute_tool(
-                        content_block.name,
-                        **content_block.input
+                        content_block.name, **content_block.input
                     )
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": content_block.id,
-                        "content": tool_result
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": content_block.id,
+                            "content": tool_result,
+                        }
+                    )
                 except Exception as e:
                     # Tool execution failed - include error in results
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": content_block.id,
-                        "content": f"Error executing {content_block.name}: {str(e)}",
-                        "is_error": True
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": content_block.id,
+                            "content": f"Error executing {content_block.name}: {str(e)}",
+                            "is_error": True,
+                        }
+                    )
                     had_error = True
 
         return tool_results, had_error
@@ -187,7 +186,7 @@ Provide only the direct answer to what was asked.
         final_params = {
             **self.base_params,
             "messages": messages,
-            "system": system_content
+            "system": system_content,
             # Note: tools and tool_choice intentionally omitted
         }
 
