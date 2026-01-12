@@ -230,9 +230,277 @@ def sample_course_metadata():
     }
 
 
-# Skip tests that require real ChromaDB if running in CI without docs
+# ============================================================================
+# API Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_rag_system():
+    """Create a fully mocked RAGSystem for API testing."""
+    mock_system = Mock()
+    mock_system.session_manager = Mock()
+
+    # Mock session creation
+    mock_system.session_manager.create_session = Mock(return_value="test_session_123")
+    mock_system.session_manager.get_conversation_history = Mock(return_value=None)
+    mock_system.session_manager.add_exchange = Mock()
+
+    # Mock query method - returns tuple of (response, sources)
+    mock_system.query = Mock(return_value=(
+        "MCP is a protocol that enables AI to interact with external tools and data sources.",
+        [{"text": "MCP Course", "url": "https://example.com/mcp"}]
+    ))
+
+    # Mock get_course_analytics
+    mock_system.get_course_analytics = Mock(return_value={
+        "total_courses": 3,
+        "course_titles": [
+            "MCP: Build Rich-Context AI Apps",
+            "Building AI Assistants with Claude",
+            "Advanced Prompt Engineering"
+        ]
+    })
+
+    return mock_system
+
+
+@pytest.fixture
+def test_app(mock_rag_system):
+    """
+    Create a test FastAPI app without static file mounting.
+
+    This fixture creates a minimal FastAPI app for testing API endpoints
+    without the static file middleware that requires actual frontend files.
+    """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+
+    # Pydantic models (matching app.py)
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class SourceInfo(BaseModel):
+        text: str
+        url: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[SourceInfo]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    # Create test app
+    app = FastAPI(title="Test RAG System API")
+
+    # Add middleware (matching app.py)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+
+    # Store the mock RAG system in app state for access in endpoints
+    app.state.rag_system = mock_rag_system
+
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        """Process a query and return response with sources."""
+        try:
+            session_id = request.session_id
+            if not session_id:
+                session_id = mock_rag_system.session_manager.create_session()
+
+            answer, sources = mock_rag_system.query(request.query, session_id)
+
+            return QueryResponse(
+                answer=answer,
+                sources=sources,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        """Get course analytics and statistics."""
+        try:
+            analytics = mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/")
+    async def root():
+        """Root endpoint - API health check."""
+        return {"status": "ok", "message": "RAG System API is running"}
+
+    return app
+
+
+@pytest.fixture
+def client(test_app):
+    """
+    Create an AsyncHTTPClient for testing FastAPI endpoints.
+
+    Uses TestClient from FastAPI's Starlette for synchronous testing.
+    """
+    from fastapi.testclient import TestClient
+    return TestClient(test_app)
+
+
+@pytest.fixture
+def sample_query_request():
+    """Sample query request payload."""
+    return {"query": "What is MCP?"}
+
+
+@pytest.fixture
+def sample_query_request_with_session():
+    """Sample query request payload with session_id."""
+    return {
+        "query": "What is MCP?",
+        "session_id": "existing_session_456"
+    }
+
+
+@pytest.fixture
+def sample_query_response():
+    """Sample query response for assertion testing."""
+    return {
+        "answer": "MCP is a protocol that enables AI to interact with external tools and data sources.",
+        "sources": [
+            {"text": "MCP Course", "url": "https://example.com/mcp"}
+        ],
+        "session_id": "test_session_123"
+    }
+
+
+@pytest.fixture
+def sample_courses_response():
+    """Sample courses response for assertion testing."""
+    return {
+        "total_courses": 3,
+        "course_titles": [
+            "MCP: Build Rich-Context AI Apps",
+            "Building AI Assistants with Claude",
+            "Advanced Prompt Engineering"
+        ]
+    }
+
+
+@pytest.fixture
+def error_mock_rag_system():
+    """RAG system mock that raises errors for testing error handling."""
+    mock_system = Mock()
+    mock_system.session_manager = Mock()
+    mock_system.session_manager.create_session = Mock(return_value="error_session")
+
+    # Mock query that raises an exception
+    mock_system.query = Mock(side_effect=Exception("API key invalid"))
+
+    # Mock get_course_analytics that raises an exception
+    mock_system.get_course_analytics = Mock(
+        side_effect=Exception("Database connection failed")
+    )
+
+    return mock_system
+
+
+@pytest.fixture
+def error_app(error_mock_rag_system):
+    """
+    Create a test FastAPI app that returns errors for testing error handling.
+    """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class SourceInfo(BaseModel):
+        text: str
+        url: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[SourceInfo]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    app = FastAPI(title="Test RAG System API - Error Mode")
+
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        try:
+            session_id = request.session_id or error_mock_rag_system.session_manager.create_session()
+            answer, sources = error_mock_rag_system.query(request.query, session_id)
+            return QueryResponse(answer=answer, sources=sources, session_id=session_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        try:
+            analytics = error_mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/")
+    async def root():
+        return {"status": "ok", "message": "RAG System API is running"}
+
+    return app
+
+
+@pytest.fixture
+def error_client(error_app):
+    """Test client for error testing."""
+    from fastapi.testclient import TestClient
+    return TestClient(error_app)
+
+
+# ============================================================================
+# pytest configuration
+# ============================================================================
+
 def pytest_configure(config):
     """Configure pytest markers."""
     config.addinivalue_line("markers", "integration: marks tests as integration tests (may require real dependencies)")
     config.addinivalue_line("markers", "unit: marks tests as unit tests (isolated, mocked)")
     config.addinivalue_line("markers", "slow: marks tests as slow (may require network or heavy computation)")
+    config.addinivalue_line("markers", "api: marks tests as API endpoint tests")

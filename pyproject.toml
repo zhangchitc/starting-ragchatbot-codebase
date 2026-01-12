@@ -17,4 +17,23 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "httpx>=0.27.0",
 ]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["backend/tests"]
+pythonpath = "backend"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "integration: marks tests as integration tests (may require real dependencies)",
+    "unit: marks tests as unit tests (isolated, mocked)",
+    "slow: marks tests as slow (may require network or heavy computation)",
+    "api: marks tests as API endpoint tests",
+]
+log_cli_level = "INFO"
